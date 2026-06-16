@@ -22,7 +22,6 @@ import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: TaskViewModel = viewModel()
@@ -178,6 +177,7 @@ fun ErrorBanner(message: String, onDismiss: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlPanel(
     url: String,
@@ -303,6 +303,7 @@ fun ControlPanel(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectedTaskPanel(
     task: Task,
