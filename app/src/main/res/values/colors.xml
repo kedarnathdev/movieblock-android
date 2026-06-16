@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="canvas">#FF111110</color>
+    <color name="surface_card">#FF1f1e1b</color>
+    <color name="primary">#FFcc785c</color>
+    <color name="accent_teal">#FF5db8a6</color>
+    <color name="accent_amber">#FFe8a55a</color>
+    <color name="success">#FF5db872</color>
+    <color name="error">#FFc64545</color>
+    <color name="on_dark">#FFfaf9f5</color>
+    <color name="muted">#FF8e8b82</color>
+</resources>
