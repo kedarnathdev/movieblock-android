@@ -22,6 +22,7 @@ import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     viewModel: TaskViewModel = viewModel()

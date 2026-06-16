@@ -2,49 +2,31 @@ package com.kedarnathdev.movieblock.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.kedarnathdev.movieblock.R
 
-// Display: Cormorant Garamond (serif) - for h1, h2, h3
-val DisplayFontFamily = FontFamily(
-    Font(R.font.cormorant_garamond, FontWeight.Normal),
-    Font(R.font.cormorant_garamond_semibold, FontWeight.SemiBold)
-)
-
-// Body: Inter (sans-serif) - for body, buttons, labels
-val BodyFontFamily = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold)
-)
-
-// Code: JetBrains Mono - for timers, seat IDs
-val CodeFontFamily = FontFamily(
-    Font(R.font.jetbrains_mono, FontWeight.Normal),
-    Font(R.font.jetbrains_mono_medium, FontWeight.Medium)
-)
+// Using default system fonts for simplicity
+// In production, you would load custom fonts from res/font/
 
 val MovieBlockTypography = Typography(
-    // Display sizes - serif
+    // Display sizes - serif would be custom font
     displayLarge = TextStyle(
-        fontFamily = DisplayFontFamily,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 48.sp,
         lineHeight = 52.sp,
         letterSpacing = (-1).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = DisplayFontFamily,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 36.sp,
         lineHeight = 40.sp,
         letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = DisplayFontFamily,
+        fontFamily = FontFamily.Serif,
         fontWeight = FontWeight.Normal,
         fontSize = 28.sp,
         lineHeight = 32.sp,
@@ -53,19 +35,19 @@ val MovieBlockTypography = Typography(
 
     // Title sizes - sans-serif
     titleLarge = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 22.sp,
         lineHeight = 28.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp,
         lineHeight = 24.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 22.sp
@@ -73,19 +55,19 @@ val MovieBlockTypography = Typography(
 
     // Body - sans-serif
     bodyLarge = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp
@@ -93,24 +75,27 @@ val MovieBlockTypography = Typography(
 
     // Labels - uppercase, tracking
     labelLarge = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 16.sp,
         letterSpacing = 1.5.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 14.sp,
         letterSpacing = 1.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = BodyFontFamily,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 13.sp,
         letterSpacing = 1.5.sp
     )
 )
+
+// Code font family for monospace text (timers, seat IDs)
+val CodeFontFamily = FontFamily.Monospace

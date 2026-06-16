@@ -1,5 +1,6 @@
 package com.kedarnathdev.movieblock.ui.components
 
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskCard(
     task: Task,
