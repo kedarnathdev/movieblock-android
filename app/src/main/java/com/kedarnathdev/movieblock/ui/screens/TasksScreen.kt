@@ -532,6 +532,7 @@ fun TaskCardSimple(
                         color = Error
                     )
                 }
+                }
             }
         }
     }
