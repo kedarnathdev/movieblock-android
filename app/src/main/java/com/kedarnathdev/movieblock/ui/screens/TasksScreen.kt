@@ -138,7 +138,7 @@ fun TasksScreen(
                 selectedTask?.let { task ->
                     Column(
                         modifier = Modifier
-                            .width(400.dp)
+                            .weight(0.4f)
                             .fillMaxHeight()
                             .verticalScroll(rememberScrollState())
                     ) {
