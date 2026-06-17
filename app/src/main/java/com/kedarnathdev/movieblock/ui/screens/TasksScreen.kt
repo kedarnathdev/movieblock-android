@@ -1,5 +1,8 @@
 package com.kedarnathdev.movieblock.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -166,6 +169,10 @@ fun TaskCardSimple(
     onDelete: () -> Unit
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
+    
+    // Loading states for actions
+    var isStopping by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
     
     // Smooth rotation for expand icon
     val rotation by animateFloatAsState(
@@ -337,8 +344,23 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details
-            if (isExpanded) {
+            // Expanded Details with proper animation
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ),
+                exit = shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            ) {
+                Column {
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -450,26 +472,54 @@ fun TaskCardSimple(
                 if (isActive) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = onStop,
+                        onClick = {
+                            isStopping = true
+                            onStop()
+                        },
+                        enabled = !isStopping,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Error),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Stop Automation")
+                        if (isStopping) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = OnPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Stopping...")
+                        } else {
+                            Icon(Icons.Default.Stop, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Stop Automation")
+                        }
                     }
                 } else {
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
-                        onClick = onDelete,
+                        onClick = {
+                            isDeleting = true
+                            onDelete()
+                        },
+                        enabled = !isDeleting,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Delete Task")
+                        if (isDeleting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Error,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Deleting...")
+                        } else {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Delete Task")
+                        }
                     }
                 }
 
