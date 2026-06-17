@@ -1,12 +1,5 @@
 package com.kedarnathdev.movieblock.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -341,24 +334,15 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details with smooth animation
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = fadeIn(
-                    animationSpec = tween(250, easing = FastOutSlowInEasing)
-                ) + expandVertically(
-                    animationSpec = tween(250, easing = FastOutSlowInEasing)
-                ),
-                exit = fadeOut(
-                    animationSpec = tween(200, easing = FastOutSlowInEasing)
-                ) + shrinkVertically(
-                    animationSpec = tween(200, easing = FastOutSlowInEasing)
-                )
-            ) {
-                Column {
+            // Expanded Details with hardware-accelerated size animation
+            if (isExpanded) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
 
                 // Task Info
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
@@ -526,7 +510,6 @@ fun TaskCardSimple(
                     }
                 }
 
-                // Error
                 task.error?.let { err ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
