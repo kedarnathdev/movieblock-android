@@ -3,6 +3,7 @@ package com.kedarnathdev.movieblock.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -184,7 +185,7 @@ fun TaskCardSimple(
     )
     val arrowProgress by animateLottieCompositionAsState(
         composition = arrowComposition,
-        progress = { if (isExpanded) 1f else 0f },
+        speed = if (isExpanded) 1f else -1f,
         iterations = 1
     )
     
