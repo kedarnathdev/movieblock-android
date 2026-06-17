@@ -59,6 +59,10 @@ class TaskViewModel : ViewModel() {
         _selectedTask.value = task
     }
 
+    fun clearSelectedTask() {
+        _selectedTask.value = null
+    }
+
     fun createTask(
         url: String,
         seatIds: List<String>,
