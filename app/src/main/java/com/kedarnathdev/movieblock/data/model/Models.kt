@@ -24,7 +24,9 @@ data class Task(
     val checkIntervalMs: Long? = null,
     val cooldownMs: Long? = null,
     val recommendedCooldownMs: Long? = null,
-    val cooldownRecommendationMeta: CooldownRecommendationMeta? = null
+    val cooldownRecommendationMeta: CooldownRecommendationMeta? = null,
+    val message: String? = null,
+    val taskId: String? = null
 )
 
 data class MovieDetails(

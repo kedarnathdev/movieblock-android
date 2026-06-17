@@ -12,7 +12,7 @@ object ApiClient {
     private var retrofit: Retrofit? = null
 
     fun initialize(url: String) {
-        baseUrl = if (url.endsWith("/api/")) url else "${url.trimEnd('/')}/api/"
+        baseUrl = if (url.endsWith("/")) url else "$url/"
         retrofit = null // Reset to recreate with new URL
     }
 
