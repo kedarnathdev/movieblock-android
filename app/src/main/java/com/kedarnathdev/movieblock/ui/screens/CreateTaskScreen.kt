@@ -95,7 +95,7 @@ fun CreateTaskScreen(
             // Form Card
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(SurfaceCard)
                     .padding(24.dp)

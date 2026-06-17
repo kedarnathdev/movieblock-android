@@ -2,6 +2,7 @@ package com.kedarnathdev.movieblock.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -39,112 +40,103 @@ fun TasksScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Canvas)
-    ) {
-        // Top Bar
-        TopAppBar(
-            title = { 
-                Text(
-                    "Active Tasks (${tasks.size})",
-                    color = Ink,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = SurfaceCard
-            ),
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Ink
-                    )
-                }
-            }
-        )
-
-        // Error banner
-        error?.let { errMsg ->
-            Snackbar(
-                modifier = Modifier.padding(16.dp),
-                action = {
-                    TextButton(onClick = { viewModel.clearError() }) {
-                        Text("Dismiss", color = OnPrimary)
-                    }
-                }
-            ) {
-                Text(errMsg, color = OnPrimary)
-            }
-        }
-
-        if (tasks.isEmpty()) {
-            // Empty state
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = Muted
-                    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
                     Text(
-                        "No Active Tasks",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Muted
+                        "Active Tasks (${tasks.size})",
+                        color = Ink,
+                        style = MaterialTheme.typography.titleLarge
                     )
-                    Text(
-                        "Tasks you create will appear here",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MutedSoft,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Left: Task List
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    tasks.forEach { task ->
-                        TaskListItem(
-                            task = task,
-                            isSelected = selectedTask?.id == task.id,
-                            onClick = { viewModel.selectTask(task) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SurfaceCard
+                ),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        viewModel.clearSelectedTask()
+                        onNavigateBack()
+                    }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Ink
                         )
                     }
                 }
+            )
+        },
+        containerColor = Canvas
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Error banner
+            error?.let { errMsg ->
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    action = {
+                        TextButton(onClick = { viewModel.clearError() }) {
+                            Text("Dismiss", color = OnPrimary)
+                        }
+                    }
+                ) {
+                    Text(errMsg, color = OnPrimary)
+                }
+            }
 
-                // Right: Selected Task Details
-                selectedTask?.let { task ->
+            if (tasks.isEmpty()) {
+                // Empty state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(
-                        modifier = Modifier
-                            .weight(0.4f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        TaskDetailPanel(
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = Muted
+                        )
+                        Text(
+                            "No Active Tasks",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Muted
+                        )
+                        Text(
+                            "Tasks you create will appear here",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MutedSoft,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Task List
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(tasks.size) { index ->
+                        val task = tasks[index]
+                        TaskCard(
                             task = task,
-                            editSeatInput = editSeatInput,
+                            isExpanded = selectedTask?.id == task.id,
+                            onToggle = {
+                                if (selectedTask?.id == task.id) {
+                                    viewModel.clearSelectedTask()
+                                } else {
+                                    viewModel.selectTask(task)
+                                }
+                            },
+                            editSeatInput = if (selectedTask?.id == task.id) editSeatInput else "",
                             onEditSeatChange = { editSeatInput = it },
                             onUpdateSeats = {
                                 val seats = editSeatInput.split(",")
@@ -166,10 +158,15 @@ fun TasksScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskListItem(
+fun TaskCard(
     task: Task,
-    isSelected: Boolean,
-    onClick: () -> Unit
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    editSeatInput: String,
+    onEditSeatChange: (String) -> Unit,
+    onUpdateSeats: () -> Unit,
+    onStop: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
     
@@ -177,15 +174,16 @@ fun TaskListItem(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Primary.copy(alpha = 0.1f) else SurfaceCard
+            containerColor = if (isExpanded) Primary.copy(alpha = 0.1f) else SurfaceCard
         ),
-        onClick = onClick
+        onClick = onToggle
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,7 +212,7 @@ fun TaskListItem(
                 }
                 
                 Icon(
-                    if (isSelected) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
                     tint = Muted
                 )
@@ -240,149 +238,112 @@ fun TaskListItem(
                     }
                 )
             }
-        }
-    }
-}
 
-@Composable
-fun TaskDetailPanel(
-    task: Task,
-    editSeatInput: String,
-    onEditSeatChange: (String) -> Unit,
-    onUpdateSeats: () -> Unit,
-    onStop: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(SurfaceCard)
-            .padding(24.dp)
-    ) {
-        // Title
-        Text(
-            text = "Task Details",
-            style = MaterialTheme.typography.titleLarge,
-            color = Ink
-        )
+            // Expanded Details
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider(color = Hairline, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+                // Movie Details
+                task.movieDetails?.let { movie ->
+                    MovieDetailsRow(movie)
+                }
 
-        // Movie Details
-        task.movieDetails?.let { movie ->
-            MovieDetailsRow(movie)
-        }
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+                // Task Info
+                TaskInfoGrid(
+                    task = task,
+                    showElapsed = isActive
+                )
 
-        // Task Info
-        TaskInfoGrid(
-            task = task,
-            showElapsed = isActive
-        )
+                // Notifications
+                if (task.notifications.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Recent Notifications",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Muted
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        task.notifications.takeLast(10).forEach { notif ->
+                            NotificationItem(notif.message, notif.type)
+                        }
+                    }
+                }
 
-        // Seats
-        if (task.selectedSeats.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Selected Seats",
-                style = MaterialTheme.typography.labelSmall,
-                color = Muted
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SeatTags(seats = task.selectedSeats)
-        }
+                // Actions
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Edit seats
+                OutlinedTextField(
+                    value = editSeatInput,
+                    onValueChange = onEditSeatChange,
+                    label = { Text("Edit Seat IDs") },
+                    placeholder = { Text("B5, B6, C3...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Hairline
+                    )
+                )
 
-        // Notifications
-        if (task.notifications.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Recent Notifications",
-                style = MaterialTheme.typography.labelSmall,
-                color = Muted
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(
-                modifier = Modifier.height(200.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                task.notifications.takeLast(10).forEach { notif ->
-                    NotificationItem(notif.message, notif.type)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onUpdateSeats,
+                    enabled = editSeatInput.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Update Seats")
+                }
+
+                if (isActive) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onStop,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Error),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Stop Automation")
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Delete Task")
+                    }
+                }
+
+                // Error
+                task.error?.let { err ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Error: $err",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Error
+                    )
                 }
             }
-        }
-
-        // Actions
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Edit seats
-        OutlinedTextField(
-            value = editSeatInput,
-            onValueChange = onEditSeatChange,
-            label = { Text("Edit Seat IDs") },
-            placeholder = { Text("B5, B6, C3...") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Hairline
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onUpdateSeats,
-                enabled = editSeatInput.isNotBlank(),
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Update Seats")
-            }
-        }
-
-        if (isActive) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onStop,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Error),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Stop, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Stop Automation")
-            }
-        } else {
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Delete Task")
-            }
-        }
-
-        // Error
-        task.error?.let { err ->
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Error: $err",
-                style = MaterialTheme.typography.bodySmall,
-                color = Error
-            )
         }
     }
 }
