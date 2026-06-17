@@ -126,7 +126,7 @@ fun TasksScreen(
                 ) {
                     items(tasks.size) { index ->
                         val task = tasks[index]
-                        TaskCard(
+                        TaskCardExpanded(
                             task = task,
                             isExpanded = selectedTask?.id == task.id,
                             onToggle = {
@@ -158,7 +158,7 @@ fun TasksScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskCard(
+fun TaskCardExpanded(
     task: Task,
     isExpanded: Boolean,
     onToggle: () -> Unit,
@@ -274,7 +274,43 @@ fun TaskCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         task.notifications.takeLast(10).forEach { notif ->
-                            NotificationItem(notif.message, notif.type)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        when (notif.type) {
+                                            "success" -> Success.copy(alpha = 0.08f)
+                                            "error" -> Error.copy(alpha = 0.08f)
+                                            "warning" -> AccentAmber.copy(alpha = 0.08f)
+                                            else -> Muted.copy(alpha = 0.08f)
+                                        }
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = when (notif.type) {
+                                        "success" -> "✓"
+                                        "error" -> "✗"
+                                        "warning" -> "⚠"
+                                        else -> "•"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = when (notif.type) {
+                                        "success" -> Success
+                                        "error" -> Error
+                                        "warning" -> AccentAmber
+                                        else -> Muted
+                                    }
+                                )
+                                Text(
+                                    text = notif.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnDark
+                                )
+                            }
                         }
                     }
                 }
