@@ -126,7 +126,8 @@ fun CreateTaskScreen(
                         focusedBorderColor = Primary,
                         unfocusedBorderColor = Hairline,
                         focusedLabelColor = Primary
-                    )
+                    ),
+                    shape = RoundedCornerShape(8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -143,7 +144,8 @@ fun CreateTaskScreen(
                         focusedBorderColor = Primary,
                         unfocusedBorderColor = Hairline,
                         focusedLabelColor = Primary
-                    )
+                    ),
+                    shape = RoundedCornerShape(8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -164,7 +166,8 @@ fun CreateTaskScreen(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = Hairline,
                             focusedLabelColor = Primary
-                        )
+                        ),
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     // Cooldown Interval

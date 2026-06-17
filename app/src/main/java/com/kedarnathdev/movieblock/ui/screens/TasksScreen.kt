@@ -1,5 +1,10 @@
 package com.kedarnathdev.movieblock.ui.screens
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -184,7 +189,13 @@ fun TaskCardSimple(
     
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = tween(
+                    durationMillis = 250,
+                    easing = FastOutSlowInEasing
+                )
+            ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isExpanded) Primary.copy(alpha = 0.1f) else SurfaceCard
@@ -334,14 +345,18 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details with hardware-accelerated size animation
+            // Expanded Details with smooth fade + size animation
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(
+                            animationSpec = tween(200, easing = FastOutSlowInEasing)
+                        )
                 ) {
 
                 // Task Info
