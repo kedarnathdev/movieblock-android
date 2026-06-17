@@ -3,8 +3,6 @@ package com.kedarnathdev.movieblock.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,7 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.kedarnathdev.movieblock.data.model.Task
 import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
@@ -175,14 +178,14 @@ fun TaskCardSimple(
     var isStopping by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     
-    // Smooth rotation for expand icon (optimized)
-    val rotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(
-            durationMillis = 300,
-            easing = FastOutSlowInEasing
-        ),
-        label = "rotation"
+    // Lottie animation for expand/collapse arrow
+    val arrowComposition by rememberLottieComposition(
+        LottieCompositionSpec.Asset("expand_collapse.json")
+    )
+    val arrowProgress by animateLottieCompositionAsState(
+        composition = arrowComposition,
+        progress = { if (isExpanded) 1f else 0f },
+        iterations = 1
     )
     
     Card(
@@ -231,13 +234,11 @@ fun TaskCardSimple(
                     )
                 }
                 
-                Icon(
-                    Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = Muted,
-                    modifier = Modifier.graphicsLayer {
-                        rotationZ = rotation
-                    }
+                // Lottie animated arrow
+                LottieAnimation(
+                    composition = arrowComposition,
+                    progress = { arrowProgress },
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -475,10 +476,14 @@ fun TaskCardSimple(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         if (isStopping) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = OnPrimary,
-                                strokeWidth = 2.dp
+                            // Lottie loading animation
+                            val loadingComp by rememberLottieComposition(
+                                LottieCompositionSpec.Asset("loading_button.json")
+                            )
+                            LottieAnimation(
+                                composition = loadingComp,
+                                iterations = LottieConstants.IterateForever,
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Stopping...")
@@ -501,10 +506,14 @@ fun TaskCardSimple(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         if (isDeleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Error,
-                                strokeWidth = 2.dp
+                            // Lottie loading animation
+                            val loadingComp by rememberLottieComposition(
+                                LottieCompositionSpec.Asset("loading_button.json")
+                            )
+                            LottieAnimation(
+                                composition = loadingComp,
+                                iterations = LottieConstants.IterateForever,
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Deleting...")
