@@ -2,7 +2,7 @@ name: Android CI - Build & Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, prerelease ]
   pull_request:
     branches: [ main ]
 
@@ -54,7 +54,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push'
     
     steps:
     - name: Checkout code
@@ -79,17 +79,31 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_OUTPUT
 
+    - name: Determine release type
+      id: release_type
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/prerelease" ]; then
+          echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+          echo "SUFFIX=-prerelease" >> $GITHUB_OUTPUT
+        else
+          echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+          echo "SUFFIX=" >> $GITHUB_OUTPUT
+        fi
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v${{ steps.version.outputs.VERSION }}-build${{ github.run_number }}
-        name: MovieBlock Android v${{ steps.version.outputs.VERSION }} (Build ${{ github.run_number }})
+        tag_name: v${{ steps.version.outputs.VERSION }}-build${{ github.run_number }}${{ steps.release_type.outputs.SUFFIX }}
+        name: MovieBlock Android v${{ steps.version.outputs.VERSION }} (Build ${{ github.run_number }}) ${{ steps.release_type.outputs.SUFFIX == '-prerelease' && '- Prerelease' || '' }}
         body: |
           ## MovieBlock Android App
           
           **Version:** ${{ steps.version.outputs.VERSION }}
           **Build:** ${{ github.run_number }}
+          **Branch:** ${{ github.ref_name }}
           **Commit:** ${{ github.sha }}
+          
+          ${{ steps.release_type.outputs.IS_PRERELEASE == 'true' && '⚠️ **This is a PRERELEASE build for testing.**' || '✅ **This is a PRODUCTION release.**' }}
           
           ### Downloads
           - **app-debug.apk** - Debug build (recommended for testing)
@@ -101,6 +115,6 @@ jobs:
           ./apk/app-debug.apk
           ./apk/app-release-unsigned.apk
         draft: false
-        prerelease: false
+        prerelease: ${{ steps.release_type.outputs.IS_PRERELEASE == 'true' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

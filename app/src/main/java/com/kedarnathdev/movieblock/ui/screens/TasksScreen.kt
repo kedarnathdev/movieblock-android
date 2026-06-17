@@ -12,10 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.kedarnathdev.movieblock.data.model.Task
 import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
@@ -210,26 +214,64 @@ fun TaskCardSimple(
                 )
             }
 
-            // Movie Title
-            task.movieDetails?.title?.let { title ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Ink,
-                    maxLines = 1
-                )
-            }
-            
-            // Showtime
-            task.movieDetails?.showtime?.let { showtime ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = showtime,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AccentAmber,
-                    fontWeight = FontWeight.Medium
-                )
+            // Movie Poster and Details
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Movie Poster
+                task.movieDetails?.posterUrl?.let { posterUrl ->
+                    AsyncImage(
+                        model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                            .data(posterUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Movie Poster",
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(SurfaceSoft),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                
+                // Movie Info
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Movie Title
+                    task.movieDetails?.title?.let { title ->
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Ink,
+                            maxLines = 2
+                        )
+                    }
+                    
+                    // Showtime
+                    task.movieDetails?.showtime?.let { showtime ->
+                        Text(
+                            text = showtime,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AccentAmber,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    
+                    // Theater
+                    task.movieDetails?.theater?.let { theater ->
+                        Text(
+                            text = theater,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Muted,
+                            maxLines = 1
+                        )
+                    }
+                }
             }
 
             // Seats
