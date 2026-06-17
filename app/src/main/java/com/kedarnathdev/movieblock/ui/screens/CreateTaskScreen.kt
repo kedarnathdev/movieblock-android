@@ -1,7 +1,5 @@
 package com.kedarnathdev.movieblock.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -35,13 +33,6 @@ fun CreateTaskScreen(
     var seatInput by remember { mutableStateOf("") }
     var checkInterval by remember { mutableStateOf(10) }
     var cooldownInterval by remember { mutableStateOf(600) }
-    
-    // Animation states
-    var formVisible by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(Unit) {
-        formVisible = true
-    }
 
     Column(
         modifier = Modifier
@@ -101,45 +92,74 @@ fun CreateTaskScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Form Card with Animation
-            AnimatedVisibility(
-                visible = formVisible,
-                enter = fadeIn(
-                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                ) + slideInVertically(
-                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-                    initialOffsetY = { it / 3 }
-                )
+            // Form Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SurfaceCard)
+                    .padding(24.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceCard)
-                        .padding(24.dp)
+                // Error banner
+                error?.let { errMsg ->
+                    Snackbar(
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        action = {
+                            TextButton(onClick = { viewModel.clearError() }) {
+                                Text("Dismiss")
+                            }
+                        }
+                    ) {
+                        Text(errMsg)
+                    }
+                }
+
+                // URL Input
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("Seat Layout URL") },
+                    placeholder = { Text("https://www.inoxmovies.com/seatlayout/...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Hairline,
+                        focusedLabelColor = Primary
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Seat IDs Input
+                OutlinedTextField(
+                    value = seatInput,
+                    onValueChange = { seatInput = it },
+                    label = { Text("Seat IDs (comma separated)") },
+                    placeholder = { Text("B1, B2, C3...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary,
+                        unfocusedBorderColor = Hairline,
+                        focusedLabelColor = Primary
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Error banner
-                    error?.let { errMsg ->
-                        Snackbar(
-                            modifier = Modifier.padding(bottom = 16.dp),
-                            action = {
-                                TextButton(onClick = { viewModel.clearError() }) {
-                                    Text("Dismiss")
-                                }
-                            }
-                        ) {
-                            Text(errMsg)
-                        }
-                    }
-
-                    // URL Input
+                    // Check Interval
                     OutlinedTextField(
-                        value = url,
-                        onValueChange = { url = it },
-                        label = { Text("Seat Layout URL") },
-                        placeholder = { Text("https://www.inoxmovies.com/seatlayout/...") },
+                        value = checkInterval.toString(),
+                        onValueChange = { checkInterval = it.toIntOrNull() ?: 10 },
+                        label = { Text("Check Interval (sec)") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = Hairline,
@@ -147,96 +167,57 @@ fun CreateTaskScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Seat IDs Input
+                    // Cooldown Interval
                     OutlinedTextField(
-                        value = seatInput,
-                        onValueChange = { seatInput = it },
-                        label = { Text("Seat IDs (comma separated)") },
-                        placeholder = { Text("B1, B2, C3...") },
+                        value = cooldownInterval.toString(),
+                        onValueChange = { cooldownInterval = it.toIntOrNull() ?: 600 },
+                        label = { Text("Cooldown (sec)") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Primary,
                             unfocusedBorderColor = Hairline,
                             focusedLabelColor = Primary
                         )
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Check Interval
-                        OutlinedTextField(
-                            value = checkInterval.toString(),
-                            onValueChange = { checkInterval = it.toIntOrNull() ?: 10 },
-                            label = { Text("Check Interval (sec)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Primary,
-                                unfocusedBorderColor = Hairline,
-                                focusedLabelColor = Primary
+                // Start Button
+                Button(
+                    onClick = {
+                        val seats = seatInput.split(",")
+                            .map { it.trim().uppercase() }
+                            .filter { it.isNotEmpty() }
+                        if (url.isNotEmpty() && seats.isNotEmpty()) {
+                            viewModel.createTask(
+                                url = url,
+                                seatIds = seats,
+                                checkIntervalMs = checkInterval * 1000L,
+                                cooldownMs = cooldownInterval * 1000L
                             )
-                        )
-
-                        // Cooldown Interval
-                        OutlinedTextField(
-                            value = cooldownInterval.toString(),
-                            onValueChange = { cooldownInterval = it.toIntOrNull() ?: 600 },
-                            label = { Text("Cooldown (sec)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Primary,
-                                unfocusedBorderColor = Hairline,
-                                focusedLabelColor = Primary
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Start Button
-                    Button(
-                        onClick = {
-                            val seats = seatInput.split(",")
-                                .map { it.trim().uppercase() }
-                                .filter { it.isNotEmpty() }
-                            if (url.isNotEmpty() && seats.isNotEmpty()) {
-                                viewModel.createTask(
-                                    url = url,
-                                    seatIds = seats,
-                                    checkIntervalMs = checkInterval * 1000L,
-                                    cooldownMs = cooldownInterval * 1000L
-                                )
-                                url = ""
-                                seatInput = ""
-                            }
-                        },
-                        enabled = !isLoading && url.isNotEmpty() && seatInput.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = OnPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                "Start Automation",
-                                style = MaterialTheme.typography.labelLarge
-                            )
+                            url = ""
+                            seatInput = ""
                         }
+                    },
+                    enabled = !isLoading && url.isNotEmpty() && seatInput.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = OnPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "Start Automation",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             }

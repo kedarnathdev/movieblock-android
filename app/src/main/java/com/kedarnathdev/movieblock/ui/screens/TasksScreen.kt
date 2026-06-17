@@ -1,7 +1,9 @@
 package com.kedarnathdev.movieblock.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -165,8 +167,25 @@ fun TaskCardSimple(
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
     
+    // Smooth rotation for expand icon
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "rotation"
+    )
+    
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isExpanded) Primary.copy(alpha = 0.1f) else SurfaceCard
@@ -210,12 +229,6 @@ fun TaskCardSimple(
                     )
                 }
                 
-                val rotation by animateFloatAsState(
-                    targetValue = if (isExpanded) 180f else 0f,
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-                    label = "rotation"
-                )
-                
                 Icon(
                     Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -235,7 +248,7 @@ fun TaskCardSimple(
                 // Movie Poster
                 task.movieDetails?.posterUrl?.let { posterUrl ->
                     AsyncImage(
-                        model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        model = ImageRequest.Builder(LocalContext.current)
                             .data(posterUrl)
                             .crossfade(true)
                             .build(),
@@ -324,24 +337,11 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details with Animation
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                ) + fadeIn(
-                    animationSpec = tween(durationMillis = 300)
-                ),
-                exit = shrinkVertically(
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                ) + fadeOut(
-                    animationSpec = tween(durationMillis = 300)
-                )
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = Hairline, thickness = 1.dp)
-                    Spacer(modifier = Modifier.height(16.dp))
+            // Expanded Details
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider(color = Hairline, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Task Info
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
@@ -481,7 +481,6 @@ fun TaskCardSimple(
                         style = MaterialTheme.typography.bodySmall,
                         color = Error
                     )
-                }
                 }
             }
         }
