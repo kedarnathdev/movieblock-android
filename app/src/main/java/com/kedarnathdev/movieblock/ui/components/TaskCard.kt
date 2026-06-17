@@ -17,6 +17,7 @@ import com.kedarnathdev.movieblock.data.model.Task
 import com.kedarnathdev.movieblock.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.TimeZone
 import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -227,16 +228,22 @@ fun TaskInfoGrid(
     task: Task,
     showElapsed: Boolean
 ) {
-    val dateFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+    inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+    val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    
+    fun parseTimestamp(timestamp: String?): String? {
+        return try {
+            timestamp?.let { inputFormat.parse(it)?.let { outputFormat.format(it) } }
+        } catch (e: Exception) {
+            null
+        }
+    }
     
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoItem("Started", task.startedAt?.let { 
-                dateFormatter.format(Date(it.toLong() * 1000))
-            } ?: "N/A")
-            InfoItem("Last Checked", task.lastChecked?.let {
-                dateFormatter.format(Date(it.toLong() * 1000))
-            } ?: "N/A")
+            InfoItem("Started", parseTimestamp(task.startedAt) ?: "N/A")
+            InfoItem("Last Checked", parseTimestamp(task.lastChecked) ?: "N/A")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             InfoItem("Loop", "#${task.currentLoop}")
