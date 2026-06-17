@@ -90,6 +90,9 @@ dependencies {
 
     // Coil for images
     implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // Lottie for smooth animations
+    implementation("com.airbnb.android:lottie-compose:6.1.0")
 
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")

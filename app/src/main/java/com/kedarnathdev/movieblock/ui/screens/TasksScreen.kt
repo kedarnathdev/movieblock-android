@@ -3,10 +3,11 @@ package com.kedarnathdev.movieblock.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -174,12 +175,12 @@ fun TaskCardSimple(
     var isStopping by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     
-    // Smooth rotation for expand icon
+    // Smooth rotation for expand icon (optimized)
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = FastOutSlowInEasing
         ),
         label = "rotation"
     )
@@ -344,20 +345,18 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details with proper animation
+            // Expanded Details with smooth animation
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
+                enter = fadeIn(
+                    animationSpec = tween(250, easing = FastOutSlowInEasing)
+                ) + expandVertically(
+                    animationSpec = tween(250, easing = FastOutSlowInEasing)
                 ),
-                exit = shrinkVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
+                exit = fadeOut(
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
+                ) + shrinkVertically(
+                    animationSpec = tween(200, easing = FastOutSlowInEasing)
                 )
             ) {
                 Column {
