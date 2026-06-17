@@ -2,7 +2,6 @@ package com.kedarnathdev.movieblock.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,9 +17,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kedarnathdev.movieblock.data.model.Task
-import com.kedarnathdev.movieblock.ui.components.*
 import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,16 +29,10 @@ fun TasksScreen(
     onNavigateBack: () -> Unit
 ) {
     val tasks by viewModel.tasks.collectAsState()
-    val selectedTask by viewModel.selectedTask.collectAsState()
+    val selectedTaskId = remember { mutableStateOf<String?>(null) }
     val error by viewModel.error.collectAsState()
     
     var editSeatInput by remember { mutableStateOf("") }
-    
-    LaunchedEffect(selectedTask) {
-        selectedTask?.let { task ->
-            editSeatInput = task.selectedSeats.joinToString(", ")
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -54,10 +48,7 @@ fun TasksScreen(
                     containerColor = SurfaceCard
                 ),
                 navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.clearSelectedTask()
-                        onNavigateBack()
-                    }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -75,7 +66,7 @@ fun TasksScreen(
                 .padding(padding)
         ) {
             // Error banner
-            error?.let { errMsg ->
+            if (error != null) {
                 Snackbar(
                     modifier = Modifier.padding(16.dp),
                     action = {
@@ -84,7 +75,7 @@ fun TasksScreen(
                         }
                     }
                 ) {
-                    Text(errMsg, color = OnPrimary)
+                    Text(error ?: "Error", color = OnPrimary)
                 }
             }
 
@@ -119,24 +110,21 @@ fun TasksScreen(
                 }
             } else {
                 // Task List
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(tasks.size) { index ->
-                        val task = tasks[index]
-                        TaskCardExpanded(
+                    tasks.forEach { task ->
+                        TaskCardSimple(
                             task = task,
-                            isExpanded = selectedTask?.id == task.id,
+                            isExpanded = selectedTaskId.value == task.id,
                             onToggle = {
-                                if (selectedTask?.id == task.id) {
-                                    viewModel.clearSelectedTask()
-                                } else {
-                                    viewModel.selectTask(task)
-                                }
+                                selectedTaskId.value = if (selectedTaskId.value == task.id) null else task.id
                             },
-                            editSeatInput = if (selectedTask?.id == task.id) editSeatInput else "",
+                            editSeatInput = editSeatInput,
                             onEditSeatChange = { editSeatInput = it },
                             onUpdateSeats = {
                                 val seats = editSeatInput.split(",")
@@ -158,7 +146,7 @@ fun TasksScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskCardExpanded(
+fun TaskCardSimple(
     task: Task,
     isExpanded: Boolean,
     onToggle: () -> Unit,
@@ -183,32 +171,36 @@ fun TaskCardExpanded(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header Row
+            // Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    StatusBadge(status = task.status)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    task.movieDetails?.title?.let { title ->
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Ink,
-                            maxLines = 1
-                        )
+                // Status
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = when (task.status) {
+                        "running", "booked" -> Success.copy(alpha = 0.15f)
+                        "waiting", "cooling_down" -> AccentAmber.copy(alpha = 0.15f)
+                        "checking", "booking", "rechecking" -> AccentTeal.copy(alpha = 0.15f)
+                        "error" -> Error.copy(alpha = 0.15f)
+                        else -> Muted.copy(alpha = 0.15f)
                     }
-                    task.movieDetails?.showtime?.let { showtime ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = showtime,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AccentAmber,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                ) {
+                    Text(
+                        text = task.status.replace("_", " ").uppercase(),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when (task.status) {
+                            "running", "booked" -> Success
+                            "waiting", "cooling_down" -> AccentAmber
+                            "checking", "booking", "rechecking" -> AccentTeal
+                            "error" -> Error
+                            else -> Muted
+                        },
+                        fontWeight = FontWeight.Medium
+                    )
                 }
                 
                 Icon(
@@ -218,10 +210,49 @@ fun TaskCardExpanded(
                 )
             }
 
+            // Movie Title
+            task.movieDetails?.title?.let { title ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Ink,
+                    maxLines = 1
+                )
+            }
+            
+            // Showtime
+            task.movieDetails?.showtime?.let { showtime ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = showtime,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AccentAmber,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             // Seats
             if (task.selectedSeats.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                SeatTags(seats = task.selectedSeats)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    task.selectedSeats.forEach { seat ->
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Primary.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = seat,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
             }
 
             // Status message
@@ -245,73 +276,78 @@ fun TaskCardExpanded(
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Movie Details
-                task.movieDetails?.let { movie ->
-                    MovieDetailsRow(movie)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // Task Info
-                TaskInfoGrid(
-                    task = task,
-                    showElapsed = isActive
-                )
-
-                // Notifications
-                if (task.notifications.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Recent Notifications",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Muted
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(
-                        modifier = Modifier
-                            .heightIn(max = 200.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        task.notifications.takeLast(10).forEach { notif ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        when (notif.type) {
-                                            "success" -> Success.copy(alpha = 0.08f)
-                                            "error" -> Error.copy(alpha = 0.08f)
-                                            "warning" -> AccentAmber.copy(alpha = 0.08f)
-                                            else -> Muted.copy(alpha = 0.08f)
-                                        }
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                Text(
-                                    text = when (notif.type) {
-                                        "success" -> "✓"
-                                        "error" -> "✗"
-                                        "warning" -> "⚠"
-                                        else -> "•"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = when (notif.type) {
-                                        "success" -> Success
-                                        "error" -> Error
-                                        "warning" -> AccentAmber
-                                        else -> Muted
-                                    }
-                                )
-                                Text(
-                                    text = notif.message,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = OnDark
-                                )
-                            }
-                        }
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+                val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+                
+                fun parseTimestamp(timestamp: String?): String {
+                    return try {
+                        timestamp?.let { inputFormat.parse(it)?.let { outputFormat.format(it) } } ?: "N/A"
+                    } catch (e: Exception) {
+                        "N/A"
+                    }
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "STARTED",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MutedSoft
+                        )
+                        Text(
+                            text = parseTimestamp(task.startedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnDark
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "LAST CHECKED",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MutedSoft
+                        )
+                        Text(
+                            text = parseTimestamp(task.lastChecked),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnDark
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "LOOP",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MutedSoft
+                        )
+                        Text(
+                            text = "#${task.currentLoop}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnDark
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "ATTEMPTS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MutedSoft
+                        )
+                        Text(
+                            text = "${task.attempts}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnDark
+                        )
                     }
                 }
 
