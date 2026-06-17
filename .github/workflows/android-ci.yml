@@ -44,11 +44,11 @@ jobs:
         name: app-debug
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Upload Release APK (Unsigned)
+    - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-release-unsigned
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        name: app-release
+        path: app/build/outputs/apk/release/app-release.apk
 
   release:
     name: Create Release
@@ -69,7 +69,7 @@ jobs:
     - name: Download Release APK
       uses: actions/download-artifact@v4
       with:
-        name: app-release-unsigned
+        name: app-release
         path: ./apk
 
     - name: Get version info
@@ -107,13 +107,17 @@ jobs:
           
           ### Downloads
           - **app-debug.apk** - Debug build (recommended for testing)
-          - **app-release-unsigned.apk** - Release build (unsigned, for manual signing)
+          - **app-release.apk** - Release build (signed with debug key, allows updates)
+          
+          ### Installation
+          ✅ This build can be installed as an update over previous versions
+          ✅ No need to uninstall the old version first
           
           ### Changes in this release
           ${{ github.event.head_commit.message }}
         files: |
           ./apk/app-debug.apk
-          ./apk/app-release-unsigned.apk
+          ./apk/app-release.apk
         draft: false
         prerelease: ${{ steps.release_type.outputs.IS_PRERELEASE == 'true' }}
       env:

@@ -11,7 +11,8 @@ android {
         applicationId = "com.kedarnathdev.movieblock"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        // Auto-increment versionCode from GitHub Actions run number
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -30,6 +31,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Sign with debug key for testing (allows updates)
+            signingConfig = signingConfigs.getByName("debug")
         }
         debug {
             isMinifyEnabled = false
