@@ -29,9 +29,13 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Debug APK
+      env:
+        API_BASE_URL: ${{ secrets.API_BASE_URL }}
       run: ./gradlew assembleDebug
 
     - name: Build Release APK
+      env:
+        API_BASE_URL: ${{ secrets.API_BASE_URL }}
       run: ./gradlew assembleRelease
 
     - name: Upload Debug APK

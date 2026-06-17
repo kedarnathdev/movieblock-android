@@ -18,6 +18,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // API Base URL from environment (falls back to localhost for dev)
+        buildConfigField("String", "API_BASE_URL", "\"${System.getenv("API_BASE_URL") ?: "http://localhost:3001"}\"")
     }
 
     buildTypes {
@@ -44,6 +47,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
