@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kedarnathdev.movieblock.ui.components.SmoothTextField
 import com.kedarnathdev.movieblock.ui.theme.*
 import com.kedarnathdev.movieblock.ui.viewmodel.TaskViewModel
 
@@ -115,37 +116,23 @@ fun CreateTaskScreen(
                 }
 
                 // URL Input
-                OutlinedTextField(
+                SmoothTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Seat Layout URL") },
-                    placeholder = { Text("https://www.inoxmovies.com/seatlayout/...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        unfocusedBorderColor = Hairline,
-                        focusedLabelColor = Primary
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                    label = "Seat Layout URL",
+                    placeholder = "https://www.inoxmovies.com/seatlayout/...",
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Seat IDs Input
-                OutlinedTextField(
+                SmoothTextField(
                     value = seatInput,
                     onValueChange = { seatInput = it },
-                    label = { Text("Seat IDs (comma separated)") },
-                    placeholder = { Text("B1, B2, C3...") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        unfocusedBorderColor = Hairline,
-                        focusedLabelColor = Primary
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                    label = "Seat IDs (comma separated)",
+                    placeholder = "B1, B2, C3...",
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -155,34 +142,21 @@ fun CreateTaskScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Check Interval
-                    OutlinedTextField(
+                    SmoothTextField(
                         value = checkInterval.toString(),
                         onValueChange = { checkInterval = it.toIntOrNull() ?: 10 },
-                        label = { Text("Check Interval (sec)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        label = "Check Interval (sec)",
                         modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedLabelColor = Primary
-                        ),
-                        shape = RoundedCornerShape(8.dp)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
                     // Cooldown Interval
-                    OutlinedTextField(
+                    SmoothTextField(
                         value = cooldownInterval.toString(),
                         onValueChange = { cooldownInterval = it.toIntOrNull() ?: 600 },
-                        label = { Text("Cooldown (sec)") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        label = "Cooldown (sec)",
                         modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = Hairline,
-                            focusedLabelColor = Primary
-                        )
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                 }
 
