@@ -1,5 +1,7 @@
 package com.kedarnathdev.movieblock.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -207,10 +210,19 @@ fun TaskCardSimple(
                     )
                 }
                 
+                val rotation by animateFloatAsState(
+                    targetValue = if (isExpanded) 180f else 0f,
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                    label = "rotation"
+                )
+                
                 Icon(
-                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = Muted
+                    tint = Muted,
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = rotation
+                    }
                 )
             }
 
@@ -312,11 +324,24 @@ fun TaskCardSimple(
                 )
             }
 
-            // Expanded Details
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = Hairline, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(16.dp))
+            // Expanded Details with Animation
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                ) + fadeIn(
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                ) + fadeOut(
+                    animationSpec = tween(durationMillis = 300)
+                )
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Hairline, thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
 
                 // Task Info
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
@@ -456,6 +481,7 @@ fun TaskCardSimple(
                         style = MaterialTheme.typography.bodySmall,
                         color = Error
                     )
+                }
                 }
             }
         }
