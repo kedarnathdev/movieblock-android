@@ -382,3 +382,34 @@ fun CountdownTimer(endTime: Long) {
         fontFamily = CodeFontFamily
     )
 }
+
+@Composable
+fun NotificationItem(message: String, type: String) {
+    val (icon, color) = when (type) {
+        "success" -> "✓" to Success
+        "error" -> "✗" to Error
+        "warning" -> "⚠" to AccentAmber
+        else -> "•" to Muted
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.08f))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = icon,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = OnDark
+        )
+    }
+}
