@@ -3,6 +3,8 @@ package com.kedarnathdev.movieblock.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,11 +39,10 @@ fun TaskCard(
             .background(SurfaceCard)
             .padding(16.dp)
     ) {
-        // Header: Status badge, Stop button, Last Checked
+        // Header: Status badge, Delete button (if inactive), Last Checked
         TaskCardHeader(
             task = task,
             isActive = isActive,
-            onStop = onStop,
             onDelete = onDelete
         )
 
@@ -55,9 +56,13 @@ fun TaskCard(
         Spacer(modifier = Modifier.height(16.dp))
         TaskStatsGrid(task = task)
 
-        // URL and Seats summary
+        // Action section (URL/Seats and Stop button)
         Spacer(modifier = Modifier.height(12.dp))
-        UrlAndSeatsSummary(task = task)
+        TaskActionSection(
+            task = task,
+            isActive = isActive,
+            onStop = onStop
+        )
 
         // Cooldown timer (if applicable)
         if (task.status == "cooling_down" && task.waitEndTime != null) {
@@ -81,7 +86,6 @@ fun TaskCard(
 private fun TaskCardHeader(
     task: Task,
     isActive: Boolean,
-    onStop: () -> Unit,
     onDelete: () -> Unit
 ) {
     Row(
@@ -104,22 +108,8 @@ private fun TaskCardHeader(
                 color = Muted
             )
 
-            // Stop/Delete button
-            if (isActive) {
-                Button(
-                    onClick = onStop,
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    shape = RoundedCornerShape(50),
-                    modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
-                ) {
-                    Text(
-                        text = "Stop",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            } else {
+            // Delete button when not active
+            if (!isActive) {
                 TextButton(
                     onClick = onDelete,
                     modifier = Modifier.height(32.dp)
@@ -232,48 +222,103 @@ private fun TaskStatsGrid(task: Task) {
 }
 
 @Composable
-private fun UrlAndSeatsSummary(task: Task) {
-    Column(
+private fun TaskActionSection(
+    task: Task,
+    isActive: Boolean,
+    onStop: () -> Unit
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(SurfaceInput)
             .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // URL
-        Text(
-            text = "URL: ${truncateUrl(task.url)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = Muted,
-            maxLines = 1
-        )
-
-        // Seat IDs
-        if (task.selectedSeats.isNotEmpty()) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // URL
             Text(
-                text = "Seat IDs: ${task.selectedSeats.joinToString(", ")}",
+                text = "URL: ${truncateUrl(task.url)}",
                 style = MaterialTheme.typography.bodySmall,
-                color = Muted
+                color = Muted,
+                maxLines = 1
             )
+
+            // Seat IDs
+            if (task.selectedSeats.isNotEmpty()) {
+                Text(
+                    text = "Seat IDs: ${task.selectedSeats.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Muted
+                )
+            } else {
+                Text(
+                    text = "Total full checks on this seat map",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Muted
+                )
+            }
+        }
+
+        if (isActive) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(
+                onClick = onStop,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.height(32.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+            ) {
+                Text(
+                    text = "Stop",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun CooldownSection(endTime: Long) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Cooldown",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Muted
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Progress Line
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(Primary.copy(alpha = 0.3f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f) // Static placeholder for visual indicator
+                    .height(2.dp)
+                    .background(Primary)
+            )
+        }
 
-        CountdownTimer(endTime = endTime)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Schedule,
+                    contentDescription = null,
+                    tint = Muted,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            CountdownTimer(endTime = endTime)
+        }
     }
 }
 
