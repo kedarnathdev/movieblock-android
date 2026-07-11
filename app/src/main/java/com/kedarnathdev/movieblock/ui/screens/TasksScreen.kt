@@ -140,6 +140,7 @@ fun TasksScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskCard(
     task: Task,
