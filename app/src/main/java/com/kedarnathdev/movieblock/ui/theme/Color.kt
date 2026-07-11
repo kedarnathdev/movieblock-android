@@ -38,3 +38,7 @@ val AccentAmber = Color(0xFFe8a55a)
 val Success = Color(0xFF5db872)
 val Warning = Color(0xFFd4a017)
 val Error = Color(0xFFc64545)
+
+// Seat Tag
+val SeatTagBackground = Color(0xFF3d2f2f)
+val SeatTagText = Color(0xFFe8a55a)

@@ -1,6 +1,7 @@
 package com.kedarnathdev.movieblock.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -118,10 +119,10 @@ fun TasksScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(tasks, key = { it.id }) { task ->
-                        TaskCardSimple(
+                        TaskCard(
                             task = task,
-                            isExpanded = selectedTaskId.value == task.id,
-                            onToggle = {
+                            isSelected = selectedTaskId.value == task.id,
+                            onSelect = {
                                 selectedTaskId.value = if (selectedTaskId.value == task.id) null else task.id
                             },
                             onUpdateSeats = { seats ->
@@ -139,259 +140,401 @@ fun TasksScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskCardSimple(
+fun TaskCard(
     task: Task,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
     onUpdateSeats: (List<String>) -> Unit,
     onStop: () -> Unit,
     onDelete: () -> Unit
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
     
-    // Per-task edit state to fix shared state bug
+    // Per-task edit state
     var editSeatInput by remember(task.id) { mutableStateOf(task.selectedSeats.joinToString(", ")) }
     
+    // Status color
+    val statusColor = when (task.status) {
+        "running", "booked" -> Success
+        "waiting", "cooling_down" -> AccentAmber
+        "checking", "booking", "rechecking" -> AccentTeal
+        "error" -> Error
+        else -> Muted
+    }
+    
+    // Date formatters
+    val inputFormat = remember {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+    val outputFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    
+    fun parseTimestamp(timestamp: String?): String {
+        return try {
+            timestamp?.let { inputFormat.parse(it)?.let { outputFormat.format(it) } } ?: "N/A"
+        } catch (e: Exception) {
+            "N/A"
+        }
+    }
+    
+    fun formatDuration(ms: Long?): String {
+        if (ms == null) return "N/A"
+        val mins = ms / 60000
+        val secs = (ms % 60000) / 1000
+        return if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+    }
+    
+    fun formatElapsed(startTime: Long?): String {
+        if (startTime == null) return "N/A"
+        val diff = System.currentTimeMillis() - startTime
+        return formatDuration(diff)
+    }
+    
+    fun getEstimatedUnlockTime(lastBookedAt: Long?, lastBlockDuration: Long?): String {
+        if (lastBookedAt == null) return "N/A"
+        val blockMs = lastBlockDuration ?: (20 * 60 * 1000)
+        val unlockTime = Date(lastBookedAt + blockMs)
+        return outputFormat.format(unlockTime)
+    }
+    
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 4.dp,
+                color = statusColor,
+                shape = RoundedCornerShape(12.dp)
+            ),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isExpanded) Primary.copy(alpha = 0.1f) else SurfaceCard
-        ),
-        onClick = onToggle
+        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+        onClick = onSelect
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Status Badge
+            // Header: Status Badge + Stop Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Status
+                // Status Badge
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = when (task.status) {
-                        "running", "booked" -> Success.copy(alpha = 0.15f)
-                        "waiting", "cooling_down" -> AccentAmber.copy(alpha = 0.15f)
-                        "checking", "booking", "rechecking" -> AccentTeal.copy(alpha = 0.15f)
-                        "error" -> Error.copy(alpha = 0.15f)
-                        else -> Muted.copy(alpha = 0.15f)
-                    }
+                    color = statusColor.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = task.status.replace("_", " ").uppercase(),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = when (task.status) {
-                            "running", "booked" -> Success
-                            "waiting", "cooling_down" -> AccentAmber
-                            "checking", "booking", "rechecking" -> AccentTeal
-                            "error" -> Error
-                            else -> Muted
-                        },
+                        color = statusColor,
                         fontWeight = FontWeight.Medium
                     )
                 }
                 
-                Icon(
-                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = Muted
-                )
-            }
-
-            // Movie Poster and Details
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Movie Poster
-                task.movieDetails?.posterUrl?.let { posterUrl ->
-                    AsyncImage(
-                        model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                            .data(posterUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Movie Poster",
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(SurfaceSoft),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                
-                // Movie Info
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Movie Title
-                    task.movieDetails?.title?.let { title ->
+                // Stop/Delete Button
+                if (isActive) {
+                    Button(
+                        onClick = onStop,
+                        colors = ButtonDefaults.buttonColors(containerColor = Error),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
                         Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Ink,
-                            maxLines = 2
-                        )
-                    }
-                    
-                    // Showtime
-                    task.movieDetails?.showtime?.let { showtime ->
-                        Text(
-                            text = showtime,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AccentAmber,
+                            "Stop",
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    
-                    // Theater
-                    task.movieDetails?.theater?.let { theater ->
+                } else {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
                         Text(
-                            text = theater,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Muted,
-                            maxLines = 1
+                            "Delete",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
-
-            // Seats
-            if (task.selectedSeats.isNotEmpty()) {
+            
+            // URL
+            Text(
+                text = task.url,
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            
+            // Movie Section
+            if (task.movieDetails != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Poster
+                    task.movieDetails.posterUrl?.let { posterUrl ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(posterUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Movie Poster",
+                            modifier = Modifier
+                                .width(60.dp)
+                                .height(90.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SurfaceSoft),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    
+                    // Movie Info
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Title
+                        task.movieDetails.title?.let { title ->
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Ink,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
+                        
+                        // Tags (Certificate, Genre, Language)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            task.movieDetails.certificate?.let {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = AccentTeal.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AccentTeal,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            task.movieDetails.genre?.let {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = AccentTeal.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AccentTeal,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            task.movieDetails.language?.let {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = AccentTeal.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = it,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AccentTeal,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Showtime
+                        task.movieDetails.showtime?.let { showtime ->
+                            Text(
+                                text = showtime,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AccentAmber,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        
+                        // Theater
+                        task.movieDetails.theater?.let { theater ->
+                            Text(
+                                text = theater,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Muted,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Statistics Grid (2 columns)
+            Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Row 1: STARTED | LAST CHECKED
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    StatItem(label = "STARTED", value = parseTimestamp(task.startedAt), modifier = Modifier.weight(1f))
+                    StatItem(label = "LAST CHECKED", value = parseTimestamp(task.lastChecked), modifier = Modifier.weight(1f))
+                }
+                
+                // Row 2: LOOP | ATTEMPTS
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    StatItem(label = "LOOP", value = "#${task.currentLoop}", modifier = Modifier.weight(1f))
+                    StatItem(label = "ATTEMPTS", value = "${task.attempts}", modifier = Modifier.weight(1f))
+                }
+                
+                // Row 3: CYCLE TIME | LAST BLOCK
+                if (isActive || task.lastBlockDuration != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        StatItem(
+                            label = "CYCLE TIME",
+                            value = formatElapsed(task.currentCycleStartedAt),
+                            modifier = Modifier.weight(1f),
+                            valueColor = AccentAmber
+                        )
+                        StatItem(
+                            label = "LAST BLOCK",
+                            value = formatDuration(task.lastBlockDuration),
+                            modifier = Modifier.weight(1f),
+                            valueColor = AccentAmber
+                        )
+                    }
+                }
+                
+                // Row 4: LAST REBOOKED | REBOOKS
+                if (task.lastBookedAt != null || task.rebookCount > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        StatItem(
+                            label = "LAST REBOOKED",
+                            value = if (task.lastBookedAt != null) outputFormat.format(Date(task.lastBookedAt)) else "N/A",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatItem(label = "REBOOKS", value = "${task.rebookCount}", modifier = Modifier.weight(1f))
+                    }
+                }
+                
+                // Row 5: EST. UNLOCK
+                if (isActive) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        StatItem(
+                            label = "EST. UNLOCK",
+                            value = "~${getEstimatedUnlockTime(task.lastBookedAt, task.lastBlockDuration)}",
+                            modifier = Modifier.weight(1f),
+                            valueColor = AccentAmber
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            
+            // Seats Row
+            if (task.selectedSeats.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     task.selectedSeats.forEach { seat ->
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = Primary.copy(alpha = 0.15f)
+                            color = SeatTagBackground
                         ) {
                             Text(
                                 text = seat,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Primary,
+                                color = SeatTagText,
                                 fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 }
             }
-
-            // Status message
-            task.message?.let { msg ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = msg,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (task.status) {
-                        "cooling_down" -> AccentAmber
-                        "rechecking" -> AccentTeal
-                        "booked" -> Success
-                        else -> Muted
+            
+            // Footer: Rechecking indicator
+            if (task.status == "rechecking" && task.checkIntervalMs != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = SurfaceDarkElevated,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            tint = AccentTeal,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Rechecking every ${task.checkIntervalMs / 1000}s",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AccentTeal,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-                )
+                }
             }
-
-            // Expanded Details
-            if (isExpanded) {
+            
+            // Expanded Details (Edit Seats)
+            if (isSelected) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Task Info - Cache SimpleDateFormat to prevent recreation
-                val inputFormat = remember {
-                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }
-                }
-                val outputFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
                 
-                fun parseTimestamp(timestamp: String?): String {
-                    return try {
-                        timestamp?.let { inputFormat.parse(it)?.let { outputFormat.format(it) } } ?: "N/A"
-                    } catch (e: Exception) {
-                        "N/A"
-                    }
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "STARTED",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MutedSoft
-                        )
-                        Text(
-                            text = parseTimestamp(task.startedAt),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnDark
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "LAST CHECKED",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MutedSoft
-                        )
-                        Text(
-                            text = parseTimestamp(task.lastChecked),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnDark
-                        )
-                    }
-                }
+                Text(
+                    text = "Update Seats",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Ink,
+                    fontWeight = FontWeight.Bold
+                )
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "LOOP",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MutedSoft
-                        )
-                        Text(
-                            text = "#${task.currentLoop}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnDark
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "ATTEMPTS",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MutedSoft
-                        )
-                        Text(
-                            text = "${task.attempts}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnDark
-                        )
-                    }
-                }
-
-                // Actions
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Edit seats
                 OutlinedTextField(
                     value = editSeatInput,
                     onValueChange = { editSeatInput = it },
@@ -404,9 +547,9 @@ fun TaskCardSimple(
                         unfocusedBorderColor = Hairline
                     )
                 )
-
+                
                 Spacer(modifier = Modifier.height(12.dp))
-
+                
                 Button(
                     onClick = {
                         val seats = editSeatInput.split(",")
@@ -421,33 +564,7 @@ fun TaskCardSimple(
                 ) {
                     Text("Update Seats")
                 }
-
-                if (isActive) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = onStop,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Error),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Stop Automation")
-                    }
-                } else {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = onDelete,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Delete Task")
-                    }
-                }
-
+                
                 // Error
                 task.error?.let { err ->
                     Spacer(modifier = Modifier.height(12.dp))
@@ -459,5 +576,28 @@ fun TaskCardSimple(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: androidx.compose.ui.graphics.Color = OnDark
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MutedSoft,
+            fontWeight = FontWeight.Normal
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
