@@ -8,16 +8,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
+    @Volatile
     private var baseUrl: String = BuildConfig.API_BASE_URL
+    
+    @Volatile
     private var retrofit: Retrofit? = null
-
-    fun initialize(url: String) {
-        baseUrl = if (url.endsWith("/")) url else "$url/"
-        retrofit = null // Reset to recreate with new URL
-    }
-
-    fun getApi(): MovieBlockApi {
-        val client = OkHttpClient.Builder()
+    
+    // Singleton OkHttpClient - reused across all requests to prevent resource leaks
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             })
@@ -25,13 +24,23 @@ object ApiClient {
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
+    }
 
-        val instance = retrofit ?: Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .also { retrofit = it }
+    fun initialize(url: String) {
+        baseUrl = if (url.endsWith("/")) url else "$url/"
+        retrofit = null // Reset to recreate with new URL
+    }
+
+    fun getApi(): MovieBlockApi {
+        // Thread-safe double-checked locking pattern
+        val instance = retrofit ?: synchronized(this) {
+            retrofit ?: Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .client(okHttpClient) // Reuse singleton client
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .also { retrofit = it }
+        }
 
         return instance.create(MovieBlockApi::class.java)
     }

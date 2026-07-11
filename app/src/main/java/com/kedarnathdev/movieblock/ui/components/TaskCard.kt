@@ -228,9 +228,13 @@ fun TaskInfoGrid(
     task: Task,
     showElapsed: Boolean
 ) {
-    val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-    inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-    val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+    // Cache SimpleDateFormat instances to prevent recreation on every recomposition
+    val inputFormat = remember {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+    val outputFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     
     fun parseTimestamp(timestamp: String?): String? {
         return try {

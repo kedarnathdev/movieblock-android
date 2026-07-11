@@ -27,6 +27,13 @@ class TaskViewModel : ViewModel() {
     val error: StateFlow<String?> = _error.asStateFlow()
     
     private var refreshJob: Job? = null
+    private var consecutiveErrors = 0
+    
+    companion object {
+        private const val DEFAULT_POLL_INTERVAL = 2000L // 2 seconds
+        private const val MAX_POLL_INTERVAL = 30000L // 30 seconds (max backoff)
+        private const val BACKOFF_MULTIPLIER = 1.5
+    }
 
     init {
         startPolling()
@@ -36,22 +43,37 @@ class TaskViewModel : ViewModel() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
             while (true) {
-                refreshTasks()
-                delay(2000) // Poll every 2 seconds
+                val success = refreshTasks()
+                
+                // Exponential backoff on errors
+                val pollInterval = if (success) {
+                    consecutiveErrors = 0
+                    DEFAULT_POLL_INTERVAL
+                } else {
+                    consecutiveErrors++
+                    val backoff = (DEFAULT_POLL_INTERVAL * Math.pow(BACKOFF_MULTIPLIER, consecutiveErrors.toDouble())).toLong()
+                    minOf(backoff, MAX_POLL_INTERVAL)
+                }
+                
+                delay(pollInterval)
             }
         }
     }
 
-    private suspend fun refreshTasks() {
-        repository.getTasks().fold(
+    private suspend fun refreshTasks(): Boolean {
+        return repository.getTasks().fold(
             onSuccess = { taskList ->
                 _tasks.value = taskList
                 // Update selected task if it exists
                 _selectedTask.value?.let { selected ->
                     _selectedTask.value = taskList.find { it.id == selected.id }
                 }
+                true
             },
-            onFailure = { /* Silent failure during polling */ }
+            onFailure = { 
+                // Silent failure during polling - will trigger backoff
+                false
+            }
         )
     }
 

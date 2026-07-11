@@ -33,6 +33,7 @@ fun CreateTaskScreen(
     var seatInput by remember { mutableStateOf("") }
     var checkInterval by remember { mutableStateOf(10) }
     var cooldownInterval by remember { mutableStateOf(600) }
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -113,6 +114,22 @@ fun CreateTaskScreen(
                         Text(errMsg)
                     }
                 }
+                
+                // Validation error banner
+                validationError?.let { errMsg ->
+                    Snackbar(
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        action = {
+                            TextButton(onClick = { validationError = null }) {
+                                Text("Dismiss")
+                            }
+                        },
+                        containerColor = Error.copy(alpha = 0.15f),
+                        contentColor = Error
+                    ) {
+                        Text(errMsg)
+                    }
+                }
 
                 // URL Input
                 OutlinedTextField(
@@ -188,18 +205,34 @@ fun CreateTaskScreen(
                 // Start Button
                 Button(
                     onClick = {
-                        val seats = seatInput.split(",")
-                            .map { it.trim().uppercase() }
-                            .filter { it.isNotEmpty() }
-                        if (url.isNotEmpty() && seats.isNotEmpty()) {
-                            viewModel.createTask(
-                                url = url,
-                                seatIds = seats,
-                                checkIntervalMs = checkInterval * 1000L,
-                                cooldownMs = cooldownInterval * 1000L
-                            )
-                            url = ""
-                            seatInput = ""
+                        // Validate inputs
+                        validationError = when {
+                            url.isEmpty() -> "Please enter a URL"
+                            !url.startsWith("http://") && !url.startsWith("https://") -> "URL must start with http:// or https://"
+                            !url.contains(".") -> "Please enter a valid URL"
+                            seatInput.isEmpty() -> "Please enter at least one seat ID"
+                            checkInterval < 1 -> "Check interval must be at least 1 second"
+                            cooldownInterval < 1 -> "Cooldown must be at least 1 second"
+                            else -> null
+                        }
+                        
+                        if (validationError == null) {
+                            val seats = seatInput.split(",")
+                                .map { it.trim().uppercase() }
+                                .filter { it.isNotEmpty() }
+                            
+                            if (seats.isEmpty()) {
+                                validationError = "Please enter at least one valid seat ID"
+                            } else {
+                                viewModel.createTask(
+                                    url = url,
+                                    seatIds = seats,
+                                    checkIntervalMs = checkInterval * 1000L,
+                                    cooldownMs = cooldownInterval * 1000L
+                                )
+                                url = ""
+                                seatInput = ""
+                            }
                         }
                     },
                     enabled = !isLoading && url.isNotEmpty() && seatInput.isNotEmpty(),

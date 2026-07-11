@@ -2,9 +2,9 @@ package com.kedarnathdev.movieblock.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -35,8 +35,6 @@ fun TasksScreen(
     val tasks by viewModel.tasks.collectAsState()
     val selectedTaskId = remember { mutableStateOf<String?>(null) }
     val error by viewModel.error.collectAsState()
-    
-    var editSeatInput by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -113,27 +111,20 @@ fun TasksScreen(
                     }
                 }
             } else {
-                // Task List
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                // Task List - Using LazyColumn for better performance with many tasks
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    tasks.forEach { task ->
+                    items(tasks, key = { it.id }) { task ->
                         TaskCardSimple(
                             task = task,
                             isExpanded = selectedTaskId.value == task.id,
                             onToggle = {
                                 selectedTaskId.value = if (selectedTaskId.value == task.id) null else task.id
                             },
-                            editSeatInput = editSeatInput,
-                            onEditSeatChange = { editSeatInput = it },
-                            onUpdateSeats = {
-                                val seats = editSeatInput.split(",")
-                                    .map { s -> s.trim().uppercase() }
-                                    .filter { it.isNotEmpty() }
+                            onUpdateSeats = { seats ->
                                 if (seats.isNotEmpty()) {
                                     viewModel.updateSeats(task.id, seats)
                                 }
@@ -154,13 +145,14 @@ fun TaskCardSimple(
     task: Task,
     isExpanded: Boolean,
     onToggle: () -> Unit,
-    editSeatInput: String,
-    onEditSeatChange: (String) -> Unit,
-    onUpdateSeats: () -> Unit,
+    onUpdateSeats: (List<String>) -> Unit,
     onStop: () -> Unit,
     onDelete: () -> Unit
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
+    
+    // Per-task edit state to fix shared state bug
+    var editSeatInput by remember(task.id) { mutableStateOf(task.selectedSeats.joinToString(", ")) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -318,10 +310,13 @@ fun TaskCardSimple(
                 Divider(color = Hairline, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Task Info
-                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-                val outputFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+                // Task Info - Cache SimpleDateFormat to prevent recreation
+                val inputFormat = remember {
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }
+                }
+                val outputFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
                 
                 fun parseTimestamp(timestamp: String?): String {
                     return try {
@@ -399,7 +394,7 @@ fun TaskCardSimple(
                 // Edit seats
                 OutlinedTextField(
                     value = editSeatInput,
-                    onValueChange = onEditSeatChange,
+                    onValueChange = { editSeatInput = it },
                     label = { Text("Edit Seat IDs") },
                     placeholder = { Text("B5, B6, C3...") },
                     singleLine = true,
@@ -413,7 +408,12 @@ fun TaskCardSimple(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
-                    onClick = onUpdateSeats,
+                    onClick = {
+                        val seats = editSeatInput.split(",")
+                            .map { s -> s.trim().uppercase() }
+                            .filter { it.isNotEmpty() }
+                        onUpdateSeats(seats)
+                    },
                     enabled = editSeatInput.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary),

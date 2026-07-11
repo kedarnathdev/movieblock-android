@@ -4,9 +4,12 @@ import com.kedarnathdev.movieblock.data.api.ApiClient
 import com.kedarnathdev.movieblock.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 class TaskRepository {
-    private val api = ApiClient.getApi()
+    // Lazy initialization to prevent creating multiple OkHttpClient instances
+    private val api by lazy { ApiClient.getApi() }
 
     suspend fun getTasks(): Result<List<Task>> = withContext(Dispatchers.IO) {
         try {
@@ -16,6 +19,10 @@ class TaskRepository {
             } else {
                 Result.failure(Exception("Failed to fetch tasks: ${response.code()}"))
             }
+        } catch (e: UnknownHostException) {
+            Result.failure(Exception("No internet connection"))
+        } catch (e: SocketTimeoutException) {
+            Result.failure(Exception("Connection timeout"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -29,6 +36,10 @@ class TaskRepository {
             } else {
                 Result.failure(Exception("Task not found"))
             }
+        } catch (e: UnknownHostException) {
+            Result.failure(Exception("No internet connection"))
+        } catch (e: SocketTimeoutException) {
+            Result.failure(Exception("Connection timeout"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -49,6 +60,10 @@ class TaskRepository {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
                 Result.failure(Exception("Failed to create task: $errorBody"))
             }
+        } catch (e: UnknownHostException) {
+            Result.failure(Exception("No internet connection"))
+        } catch (e: SocketTimeoutException) {
+            Result.failure(Exception("Connection timeout"))
         } catch (e: Exception) {
             Result.failure(e)
         }
