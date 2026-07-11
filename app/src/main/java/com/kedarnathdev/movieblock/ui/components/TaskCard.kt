@@ -1,321 +1,203 @@
 package com.kedarnathdev.movieblock.ui.components
 
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.kedarnathdev.movieblock.data.model.MovieDetails
 import com.kedarnathdev.movieblock.data.model.Task
 import com.kedarnathdev.movieblock.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.TimeZone
-import kotlin.math.max
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Redesigned Task Card matching the new design.
+ */
 @Composable
 fun TaskCard(
     task: Task,
-    isSelected: Boolean,
-    onClick: () -> Unit,
     onStop: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isActive = task.status in listOf("running", "waiting", "checking", "booked", "booking", "cooling_down", "rechecking")
-    
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) SurfaceDarkElevated else SurfaceDark
-        ),
-        onClick = onClick
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SurfaceCard)
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Header with status and actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    StatusBadge(status = task.status)
-                    Text(
-                        text = task.url.substringAfterLast("/"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OnDarkSoft,
-                        maxLines = 2,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-                
-                if (isActive) {
-                    Button(
-                        onClick = onStop,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Error
-                        ),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Stop", style = MaterialTheme.typography.labelMedium)
-                    }
-                } else {
-                    TextButton(
-                        onClick = onDelete,
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Delete", color = MutedSoft, style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
+        // Header: Status badge, Stop button, Last Checked
+        TaskCardHeader(
+            task = task,
+            isActive = isActive,
+            onStop = onStop,
+            onDelete = onDelete
+        )
 
-            // Movie details
-            task.movieDetails?.let { movie ->
-                Spacer(modifier = Modifier.height(12.dp))
-                MovieDetailsRow(movie)
-            }
+        // Movie details section
+        task.movieDetails?.let { movie ->
+            Spacer(modifier = Modifier.height(16.dp))
+            MovieDetailsSection(movie = movie)
+        }
 
-            // Task info grid
+        // Stats grid
+        Spacer(modifier = Modifier.height(16.dp))
+        TaskStatsGrid(task = task)
+
+        // URL and Seats summary
+        Spacer(modifier = Modifier.height(12.dp))
+        UrlAndSeatsSummary(task = task)
+
+        // Cooldown timer (if applicable)
+        if (task.status == "cooling_down" && task.waitEndTime != null) {
             Spacer(modifier = Modifier.height(12.dp))
-            TaskInfoGrid(
-                task = task,
-                showElapsed = isActive
+            CooldownSection(endTime = task.waitEndTime)
+        }
+
+        // Error message
+        task.error?.let { error ->
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Error: $error",
+                style = MaterialTheme.typography.bodySmall,
+                color = Error
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaskCardHeader(
+    task: Task,
+    isActive: Boolean,
+    onStop: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Status badge
+        StatusBadge(status = task.status)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Last Checked
+            val lastCheckedFormatted = formatLastChecked(task.lastChecked)
+            Text(
+                text = "Last Checked: $lastCheckedFormatted",
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted
             )
 
-            // Seat tags
-            if (task.selectedSeats.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                SeatTags(seats = task.selectedSeats)
+            // Stop/Delete button
+            if (isActive) {
+                Button(
+                    onClick = onStop,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = "Stop",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            } else {
+                TextButton(
+                    onClick = onDelete,
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = MutedSoft,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
+        }
+    }
+}
 
-            // Status callout
-            if (task.status == "booked" || task.status == "cooling_down" || task.status == "rechecking") {
-                Spacer(modifier = Modifier.height(8.dp))
-                StatusCallout(status = task.status, waitEndTime = task.waitEndTime)
-            }
-
-            // Error message
-            task.error?.let { error ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Error: $error",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Error
+@Composable
+private fun MovieDetailsSection(movie: MovieDetails) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Movie poster
+        Box(
+            modifier = Modifier
+                .size(60.dp, 90.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(SurfaceInput)
+        ) {
+            movie.posterUrl?.let { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = movie.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
         }
-    }
-}
 
-@Composable
-fun StatusBadge(status: String) {
-    val (bgColor, textColor) = when (status) {
-        "running" -> Success.copy(alpha = 0.15f) to Success
-        "waiting" -> AccentAmber.copy(alpha = 0.15f) to AccentAmber
-        "checking" -> AccentTeal.copy(alpha = 0.15f) to AccentTeal
-        "booked" -> Success.copy(alpha = 0.15f) to Success
-        "booking" -> AccentTeal.copy(alpha = 0.15f) to AccentTeal
-        "cooling_down" -> AccentAmber.copy(alpha = 0.15f) to AccentAmber
-        "rechecking" -> AccentTeal.copy(alpha = 0.15f) to AccentTeal
-        "stopped" -> Muted.copy(alpha = 0.15f) to Muted
-        "error" -> Error.copy(alpha = 0.15f) to Error
-        else -> MutedSoft.copy(alpha = 0.15f) to MutedSoft
-    }
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = status.replace("_", " ").uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = textColor,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-fun MovieDetailsRow(
-    movie: com.kedarnathdev.movieblock.data.model.MovieDetails
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Primary.copy(alpha = 0.06f))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Poster placeholder - would use Coil in production
-        Box(
-            modifier = Modifier
-                .size(56.dp, 80.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(SurfaceDarkElevated),
-            contentAlignment = Alignment.Center
-        ) {
-            movie.posterUrl?.let {
-                // In production: Coil image loading
-                Text("🎬", style = MaterialTheme.typography.displaySmall)
-            }
-        }
-        
+        // Movie info
         Column(modifier = Modifier.weight(1f)) {
             movie.title?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.titleMedium,
-                    color = OnDark,
+                    color = Ink,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                movie.certificate?.let {
-                    MetaTag(it)
-                }
-                movie.genre?.let {
-                    MetaTag(it, color = AccentTeal)
-                }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Tags row
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                movie.certificate?.let { MovieTag(text = it) }
+                movie.genre?.let { MovieTag(text = it) }
+                movie.language?.let { MovieTag(text = it) }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Showtime
             movie.showtime?.let {
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AccentAmber,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun MetaTag(text: String, color: Color = Primary) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 10.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = text.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = color
-        )
-    }
-}
-
-@Composable
-fun TaskInfoGrid(
-    task: Task,
-    showElapsed: Boolean
-) {
-    // Cache SimpleDateFormat instances to prevent recreation on every recomposition
-    val inputFormat = remember {
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-    }
-    val outputFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
-    
-    fun parseTimestamp(timestamp: String?): String? {
-        return try {
-            timestamp?.let { inputFormat.parse(it)?.let { outputFormat.format(it) } }
-        } catch (e: Exception) {
-            null
-        }
-    }
-    
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoItem("Started", parseTimestamp(task.startedAt) ?: "N/A")
-            InfoItem("Last Checked", parseTimestamp(task.lastChecked) ?: "N/A")
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoItem("Loop", "#${task.currentLoop}")
-            InfoItem("Attempts", "${task.attempts}")
-        }
-        
-        if (showElapsed && task.currentCycleStartedAt != null) {
-            var elapsed by remember { mutableStateOf(0L) }
-            LaunchedEffect(task.currentCycleStartedAt) {
-                val start = task.currentCycleStartedAt
-                while (true) {
-                    elapsed = System.currentTimeMillis() - start
-                    kotlinx.coroutines.delay(1000)
-                }
-            }
-            val hours = elapsed / 3600000
-            val mins = (elapsed % 3600000) / 60000
-            val secs = (elapsed % 60000) / 1000
-            val elapsedStr = when {
-                hours > 0 -> "${hours}h ${mins}m ${secs}s"
-                mins > 0 -> "${mins}m ${secs}s"
-                else -> "${secs}s"
-            }
-            InfoItem("Cycle Time", elapsedStr, valueColor = AccentAmber)
-        }
-        
-        if (task.rebookCount > 0) {
-            InfoItem("Rebooks", "${task.rebookCount}")
-        }
-    }
-}
-
-@Composable
-fun InfoItem(label: String, value: String, valueColor: Color = OnDark) {
-    Column {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MutedSoft
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-            fontFamily = com.kedarnathdev.movieblock.ui.theme.CodeFontFamily
-        )
-    }
-}
-
-@Composable
-fun SeatTags(seats: List<String>) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.wrapContentWidth()
-    ) {
-        seats.forEach { seat ->
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Primary.copy(alpha = 0.15f))
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = seat,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Primary,
-                    fontFamily = CodeFontFamily,
-                    fontWeight = FontWeight.Medium
+                    color = Muted
+                )
+            }
+
+            // Theater
+            movie.theater?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Muted
                 )
             }
         }
@@ -323,97 +205,136 @@ fun SeatTags(seats: List<String>) {
 }
 
 @Composable
-fun StatusCallout(status: String, waitEndTime: Long?) {
-    val (bgColor, textColor) = when (status) {
-        "booked" -> Success.copy(alpha = 0.1f) to Success
-        "cooling_down" -> AccentAmber.copy(alpha = 0.1f) to AccentAmber
-        "rechecking" -> AccentTeal.copy(alpha = 0.1f) to AccentTeal
-        else -> Muted.copy(alpha = 0.1f) to Muted
+private fun TaskStatsGrid(task: Task) {
+    val cycleTime = calculateCycleTime(task)
+    val lastBlock = formatDuration(task.lastBlockDuration)
+    val lastRebooked = task.lastBookedAt?.let { formatTimestamp(it) } ?: "—"
+    val estUnlock = calculateEstimatedUnlock(task)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Row 1: Loop | Attempts | Cycle Time
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            InfoItem(label = "Loop", value = "${task.currentLoop}")
+            InfoItem(label = "Attempts", value = "${task.attempts}")
+            InfoItem(label = "Cycle Time", value = cycleTime, valueColor = AccentAmber)
+        }
+
+        // Row 2: Last Block | Last Rebooked
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            InfoItem(label = "Last Block", value = lastBlock)
+            InfoItem(label = "Last Rebooked", value = lastRebooked)
+        }
+
+        // Row 3: Rebooks | Est. Unlock
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            InfoItem(label = "Rebooks", value = "${task.rebookCount}")
+            estUnlock?.let {
+                InfoItem(label = "Est. Unlock", value = it)
+            }
+        }
     }
-    
-    Row(
+}
+
+@Composable
+private fun UrlAndSeatsSummary(task: Task) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .background(SurfaceInput)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // URL
+        Text(
+            text = "URL: ${truncateUrl(task.url)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = Muted,
+            maxLines = 1
+        )
+
+        // Seat IDs
+        if (task.selectedSeats.isNotEmpty()) {
+            Text(
+                text = "Seat IDs: ${task.selectedSeats.joinToString(", ")}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted
+            )
+        }
+    }
+}
+
+@Composable
+private fun CooldownSection(endTime: Long) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        when (status) {
-            "booked" -> Text("✓", style = MaterialTheme.typography.bodyLarge, color = textColor)
-            "cooling_down" -> Text("⏳", style = MaterialTheme.typography.bodyLarge)
-            "rechecking" -> Text("🔄", style = MaterialTheme.typography.bodyLarge)
-        }
-        
         Text(
-            text = when (status) {
-                "booked" -> "Seats Selected"
-                "cooling_down" -> "Cooldown"
-                "rechecking" -> "Rechecking every 10s"
-                else -> status.replace("_", " ").capitalize()
-            },
+            text = "Cooldown",
             style = MaterialTheme.typography.bodyMedium,
-            color = textColor
+            color = Muted
         )
-        
-        if (status == "cooling_down" && waitEndTime != null) {
-            Spacer(modifier = Modifier.weight(1f))
-            CountdownTimer(endTime = waitEndTime)
-        }
+
+        CountdownTimer(endTime = endTime)
     }
 }
 
-@Composable
-fun CountdownTimer(endTime: Long) {
-    var remaining by remember { mutableStateOf(max(0L, endTime - System.currentTimeMillis())) }
-    
-    LaunchedEffect(endTime) {
-        while (true) {
-            remaining = max(0L, endTime - System.currentTimeMillis())
-            if (remaining <= 0) break
-            kotlinx.coroutines.delay(1000)
-        }
+// Helper functions
+
+private fun formatLastChecked(timestamp: String?): String {
+    if (timestamp == null) return "—"
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+        val date = inputFormat.parse(timestamp)
+        val outputFormat = SimpleDateFormat("h:mm:ss a", Locale.getDefault())
+        outputFormat.format(date!!)
+    } catch (e: Exception) {
+        "—"
     }
-    
-    val mins = remaining / 60000
-    val secs = (remaining % 60000) / 1000
-    
-    Text(
-        text = "${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}",
-        style = MaterialTheme.typography.displaySmall,
-        color = Primary,
-        fontFamily = CodeFontFamily
-    )
 }
 
-@Composable
-fun NotificationItem(message: String, type: String) {
-    val (icon, color) = when (type) {
-        "success" -> "✓" to Success
-        "error" -> "✗" to Error
-        "warning" -> "⚠" to AccentAmber
-        else -> "•" to Muted
+private fun calculateCycleTime(task: Task): String {
+    val start = task.currentCycleStartedAt ?: return "N/A"
+    val diff = System.currentTimeMillis() - start
+    val seconds = diff / 1000.0
+    return "${String.format("%.1f", seconds)}s"
+}
+
+private fun formatDuration(ms: Long?): String {
+    if (ms == null) return "—"
+    val mins = ms / 60000
+    val secs = (ms % 60000) / 1000
+    return if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+}
+
+private fun formatTimestamp(ms: Long): String {
+    return try {
+        val outputFormat = SimpleDateFormat("h:mm:ss a", Locale.getDefault())
+        outputFormat.format(Date(ms))
+    } catch (e: Exception) {
+        "—"
     }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.08f))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Text(
-            text = icon,
-            style = MaterialTheme.typography.bodySmall,
-            color = color
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            color = OnDark
-        )
-    }
+}
+
+private fun calculateEstimatedUnlock(task: Task): String? {
+    val booked = task.lastBookedAt ?: return null
+    val duration = task.lastBlockDuration ?: return null
+    val unlockTime = booked + duration
+    return formatTimestamp(unlockTime)
+}
+
+private fun truncateUrl(url: String): String {
+    return if (url.length > 40) url.take(37) + "..." else url
 }

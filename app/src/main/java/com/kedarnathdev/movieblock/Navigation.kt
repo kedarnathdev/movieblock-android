@@ -1,40 +1,39 @@
 package com.kedarnathdev.movieblock
 
-import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import com.kedarnathdev.movieblock.ui.components.BottomNavBar
 import com.kedarnathdev.movieblock.ui.screens.CreateTaskScreen
 import com.kedarnathdev.movieblock.ui.screens.TasksScreen
 
-sealed class Screen(val route: String) {
-    object CreateTask : Screen("create_task")
-    object Tasks : Screen("tasks")
-}
-
+/**
+ * Main navigation with bottom tab bar.
+ * Uses Crossfade for smooth transitions between tabs.
+ */
 @Composable
-fun MovieBlockNavigation(
-    navController: NavHostController = rememberNavController()
-) {
-    NavHost(
-        navController = navController,
-        startDestination = Screen.CreateTask.route
-    ) {
-        composable(Screen.CreateTask.route) {
-            CreateTaskScreen(
-                onNavigateToTasks = {
-                    navController.navigate(Screen.Tasks.route)
-                }
-            )
+fun MovieBlockNavigation() {
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Content area
+        Crossfade(
+            targetState = selectedTab,
+            label = "tab_switch",
+            modifier = Modifier.fillMaxSize()
+        ) { tab ->
+            when (tab) {
+                0 -> CreateTaskScreen()
+                1 -> TasksScreen()
+            }
         }
-        
-        composable(Screen.Tasks.route) {
-            TasksScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+
+        // Bottom navigation bar
+        BottomNavBar(
+            selectedTab = selectedTab,
+            onTabSelected = { selectedTab = it },
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+        )
     }
 }
