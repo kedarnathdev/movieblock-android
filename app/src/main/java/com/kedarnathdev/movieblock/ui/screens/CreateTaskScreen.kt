@@ -51,7 +51,7 @@ fun CreateTaskScreen(
 
         // Form Fields
         // Seat Layout URL
-        FormLabel("SEAT LAYOUT URL")
+        FormLabel("Seat Layout URL")
         FormInputField(
             value = url,
             onValueChange = { url = it },
@@ -61,7 +61,7 @@ fun CreateTaskScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // Seat IDs
-        FormLabel("SEAT IDS")
+        FormLabel("Seat IDs")
         FormInputField(
             value = seatInput,
             onValueChange = { seatInput = it },
@@ -79,7 +79,7 @@ fun CreateTaskScreen(
             colors = ButtonDefaults.buttonColors(
                 containerColor = SecondaryButtonBackground
             ),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(50)
         ) {
             Text(
                 text = "Preview Seat Layout",
@@ -92,7 +92,7 @@ fun CreateTaskScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Check Interval
-        FormLabel("CHECK INTERVAL (SECONDS)")
+        FormLabel("Check Interval (seconds)")
         FormInputField(
             value = checkInterval.toString(),
             onValueChange = { checkInterval = it.toIntOrNull() ?: 10 },
@@ -104,7 +104,7 @@ fun CreateTaskScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // Cooldown Period
-        FormLabel("COOLDOWN PERIOD (SECONDS)")
+        FormLabel("Cooldown Period (seconds)")
         FormInputField(
             value = cooldownInterval.toString(),
             onValueChange = { cooldownInterval = it.toIntOrNull() ?: 600 },
@@ -167,7 +167,7 @@ fun CreateTaskScreen(
                 containerColor = Primary,
                 disabledContainerColor = PrimaryDisabled
             ),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(50)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

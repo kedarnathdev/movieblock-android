@@ -3,8 +3,8 @@ package com.kedarnathdev.movieblock.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Brand & Accent - Coral/Salmon from design
-val Primary = Color(0xFFE07A5F)
-val PrimaryActive = Color(0xFFF08060)
+val Primary = Color(0xFFFF7A60) // Adjusted coral
+val PrimaryActive = Color(0xFFFF8A75)
 val PrimaryDisabled = Color(0xFF3d3530)
 
 // Text Colors
@@ -15,10 +15,10 @@ val Muted = Color(0xFF8E8B82)         // Tertiary/muted text
 val MutedSoft = Color(0xFF6C6A64)     // Very muted text
 
 // Surface Colors - Dark theme
-val Canvas = Color(0xFF1A1A1A)        // Main background
+val Canvas = Color(0xFF141414)        // Main background (softer black)
 val SurfaceSoft = Color(0xFF1C1C1E)   // Card backgrounds
-val SurfaceCard = Color(0xFF1C1C1E)   // Card surface (matches design)
-val SurfaceInput = Color(0xFF2C2C2E)  // Input field backgrounds
+val SurfaceCard = Color(0xFF1E1E1E)   // Card surface (matches design)
+val SurfaceInput = Color(0xFF232323)  // Input field backgrounds
 val SurfaceCreamStrong = Color(0xFF252320)
 val Hairline = Color(0xFF3A3A3C)      // Borders/dividers
 val HairlineSoft = Color(0xFF262420)

@@ -211,36 +211,23 @@ private fun TaskStatsGrid(task: Task) {
     val lastRebooked = task.lastBookedAt?.let { formatTimestamp(it) } ?: "—"
     val estUnlock = calculateEstimatedUnlock(task)
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Row 1: Loop | Attempts | Cycle Time
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            InfoItem(label = "Loop", value = "${task.currentLoop}")
-            InfoItem(label = "Attempts", value = "${task.attempts}")
-            InfoItem(label = "Cycle Time", value = cycleTime, valueColor = AccentAmber)
-        }
-
-        // Row 2: Last Block | Last Rebooked
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            InfoItem(label = "Last Block", value = lastBlock)
-            InfoItem(label = "Last Rebooked", value = lastRebooked)
-        }
-
-        // Row 3: Rebooks | Est. Unlock
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            InfoItem(label = "Rebooks", value = "${task.rebookCount}")
-            estUnlock?.let {
-                InfoItem(label = "Est. Unlock", value = it)
-            }
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Loop: ${task.currentLoop}  |  Attempts: ${task.attempts}  |  Cycle Time: $cycleTime",
+            style = MaterialTheme.typography.bodySmall,
+            color = Muted
+        )
+        Text(
+            text = "Last Block: $lastBlock  |  Last Rebooked: $lastRebooked",
+            style = MaterialTheme.typography.bodySmall,
+            color = Muted
+        )
+        val unlockText = estUnlock?.let { "  |  Est. Unlock: $it" } ?: ""
+        Text(
+            text = "Rebooks: ${task.rebookCount}$unlockText",
+            style = MaterialTheme.typography.bodySmall,
+            color = Muted
+        )
     }
 }
 
